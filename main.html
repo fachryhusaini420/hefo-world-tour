@@ -136,3 +136,72 @@
     <div class="stats-row">
       <div class="stat-card"><div class="label">Total minted</div><div class="value" id="stat-minted">—</div></div>
       <div class="stat-card"><div class="label">My cars</div><div class="value gold" id="stat-my-cars">—</div></div>
+      <div class="stat-card"><div class="label">Stages unlocked</div><div class="value" id="stat-stages">—</div></div>
+      <div class="stat-card"><div class="label">Status</div><div class="value" id="stat-paused">—</div></div>
+    </div>
+
+    <div class="tabs">
+      <button type="button" class="tab active" data-tab="mint">Mint car</button>
+      <button type="button" class="tab" data-tab="my-cars">My cars</button>
+      <button type="button" class="tab" data-tab="progression">Progression</button>
+      <button type="button" class="tab" data-tab="leaderboard">Leaderboard</button>
+      <button type="button" class="tab" data-tab="roles">Roles (Pit Boss / Director)</button>
+      <button type="button" class="tab" data-tab="config">Config</button>
+    </div>
+
+    <div id="panel-mint" class="panel visible">
+      <div class="card">
+        <h3>Mint racing car</h3>
+        <p style="color: var(--text-dim); font-size: 0.86rem; margin-bottom: 0.8rem;">Chassis type 0–31, engine tier 0–7. Price depends on chassis. Pay in ETH.</p>
+        <label>Chassis type (0–31)</label>
+        <input type="number" id="mint-chassis" class="input" min="0" max="31" value="0" />
+        <label>Engine tier (0–7)</label>
+        <input type="number" id="mint-tier" class="input" min="0" max="7" value="1" />
+        <label>Mint price (wei) — will be shown after contract load</label>
+        <input type="text" id="mint-price-display" class="input" placeholder="—" readonly />
+        <div class="actions">
+          <button type="button" id="btn-mint" class="btn primary">Mint car</button>
+        </div>
+        <div id="mint-msg" class="msg" style="display:none;"></div>
+      </div>
+      <div class="card">
+        <h3>Batch mint</h3>
+        <label>Chassis types (comma-separated, e.g. 0,1,2)</label>
+        <input type="text" id="batch-chassis" class="input" placeholder="0,1,2" />
+        <label>Engine tiers (comma-separated, e.g. 1,2,1)</label>
+        <input type="text" id="batch-tier" class="input" placeholder="1,2,1" />
+        <button type="button" id="btn-batch-mint" class="btn gold small">Mint batch</button>
+        <div id="batch-mint-msg" class="msg" style="display:none;"></div>
+      </div>
+    </div>
+
+    <div id="panel-my-cars" class="panel">
+      <div class="card">
+        <h3>My racing cars</h3>
+        <p style="color: var(--text-dim); font-size: 0.86rem; margin-bottom: 0.75rem;">NFTs you own. Use them to unlock stages (race director or keeper).</p>
+        <div class="actions"><button type="button" id="btn-refresh-cars" class="btn gold small">Refresh</button></div>
+        <ul id="my-cars-list" class="car-list"></ul>
+        <div id="my-cars-empty" style="display:none; color: var(--text-dim); font-size: 0.9rem;">No cars yet. Mint one from the Mint car tab.</div>
+      </div>
+      <div class="card">
+        <h4>Qualifying for stage 0</h4>
+        <p id="qualifying-count" style="font-family: 'Share Tech Mono', monospace; color: var(--track);">—</p>
+        <p style="color: var(--text-dim); font-size: 0.8rem; margin-top: 0.25rem;">Number of your cars that qualify for the first configured stage.</p>
+      </div>
+    </div>
+
+    <div id="panel-progression" class="panel">
+      <div class="card">
+        <h3>My progression</h3>
+        <p style="color: var(--text-dim); font-size: 0.86rem; margin-bottom: 0.75rem;">Stages unlocked and checkpoints reached (set by race director).</p>
+        <div id="progression-content"></div>
+      </div>
+    </div>
+
+    <div id="panel-leaderboard" class="panel">
+      <div class="card">
+        <h3>Stage leaders</h3>
+        <p style="color: var(--text-dim); font-size: 0.86rem; margin-bottom: 0.75rem;">Best lap time per stage.</p>
+        <div class="actions"><button type="button" id="btn-refresh-leaderboard" class="btn gold small">Refresh</button></div>
+        <table class="leaderboard-table" id="leaderboard-table">
+          <thead><tr><th>Stage</th><th>Leader</th><th>Best lap (ms)</th></tr></thead>
