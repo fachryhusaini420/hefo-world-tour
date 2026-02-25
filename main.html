@@ -619,3 +619,68 @@
       });
 
       document.getElementById('btn-withdraw').addEventListener('click', async function () {
+        hideMsg('withdraw-msg');
+        const to = (document.getElementById('withdraw-to').value || '').trim();
+        const amount = (document.getElementById('withdraw-amount').value || '0').trim();
+        const addr = getContractAddr();
+        if (!addr || !signer || !to || amount === '0') { showMsg('withdraw-msg', 'Connect wallet, set contract, to address, and amount.', 'err'); return; }
+        try {
+          const abi = ['function withdrawProceeds(address to, uint256 amountWei)'];
+          const c = new ethers.Contract(addr, abi, signer);
+          const tx = await c.withdrawProceeds(to, BigInt(amount));
+          showMsg('withdraw-msg', 'Tx: ' + tx.hash, 'ok');
+          await tx.wait();
+          showMsg('withdraw-msg', 'Withdrawn.', 'ok');
+          refreshStats();
+        } catch (e) { showMsg('withdraw-msg', e.message || 'Failed', 'err'); }
+      });
+
+      document.getElementById('btn-configure-stage').addEventListener('click', async function () {
+        hideMsg('configure-stage-msg');
+        const stageId = parseInt(document.getElementById('cfg-stage-id').value, 10) || 0;
+        const tier = parseInt(document.getElementById('cfg-stage-tier').value, 10) || 0;
+        const mask = (document.getElementById('cfg-stage-mask').value || '0').trim();
+        const addr = getContractAddr();
+        if (!addr || !signer) { showMsg('configure-stage-msg', 'Connect wallet and set contract.', 'err'); return; }
+        try {
+          const abi = ['function configureStage(uint8 stageId, uint8 requiredMinTier, uint32 requiredChassisMask)'];
+          const c = new ethers.Contract(addr, abi, signer);
+          const tx = await c.configureStage(stageId, tier, BigInt(mask));
+          showMsg('configure-stage-msg', 'Tx: ' + tx.hash, 'ok');
+          await tx.wait();
+          showMsg('configure-stage-msg', 'Stage configured.', 'ok');
+        } catch (e) { showMsg('configure-stage-msg', e.message || 'Failed', 'err'); }
+      });
+
+      async function loadStagesList() {
+        const addr = getContractAddr();
+        const el = document.getElementById('stages-list');
+        if (!addr) { el.textContent = 'Set contract to load stages.'; return; }
+        try {
+          const abi = ['function getConfiguredStageIds() view returns (uint8[])', 'function getStageConfig(uint8) view returns (uint8 requiredMinTier, uint32 requiredChassisMask, bool configured)'];
+          const c = new ethers.Contract(addr, abi, provider || ethers.getDefaultProvider());
+          const ids = await c.getConfiguredStageIds();
+          if (!ids.length) { el.textContent = 'No stages configured yet.'; return; }
+          let html = '';
+          for (let i = 0; i < Math.min(ids.length, 24); i++) {
+            const cfg = await c.getStageConfig(ids[i]);
+            html += '<p>Stage ' + ids[i] + ': min tier ' + cfg.requiredMinTier + ', chassis mask ' + cfg.requiredChassisMask + '</p>';
+          }
+          el.innerHTML = html;
+        } catch (e) { el.textContent = 'Could not load stages.'; }
+      }
+
+      document.querySelectorAll('.tab').forEach(function (tab) {
+        tab.addEventListener('click', function () {
+          if (tab.getAttribute('data-tab') === 'config') setTimeout(loadStagesList, 100);
+        });
+      });
+
+      refreshStats();
+      updateMintPriceDisplay();
+    })();
+  </script>
+</body>
+</html>
+
+
