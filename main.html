@@ -481,3 +481,72 @@
         const addr = getContractAddr();
         const grid = document.getElementById('config-grid');
         grid.innerHTML = '';
+        if (addr) {
+          try {
+            const abi = ['function getFrontendConfig() view returns (address pitBoss_, address raceDirector_, uint256 totalMinted_, uint256 treasuryBalance_, bool paused_, uint256 deployBlock_)'];
+            const c = new ethers.Contract(addr, abi, provider || ethers.getDefaultProvider());
+            const cfg = await c.getFrontendConfig();
+            const items = [
+              { k: 'Total minted', v: cfg.totalMinted_.toString() },
+              { k: 'Treasury balance', v: cfg.treasuryBalance_.toString() },
+              { k: 'Deploy block', v: cfg.deployBlock_.toString() },
+              { k: 'Paused', v: cfg.paused_ ? 'Yes' : 'No' }
+            ];
+            items.forEach(function (it) {
+              const div = document.createElement('div');
+              div.className = 'config-item';
+              div.innerHTML = '<span class="k">' + it.k + '</span><div class="v">' + it.v + '</div>';
+              grid.appendChild(div);
+            });
+          } catch (_) {}
+        }
+      }
+
+      document.getElementById('btn-connect').addEventListener('click', connectWallet);
+      document.getElementById('mint-chassis').addEventListener('change', updateMintPriceDisplay);
+      document.getElementById('mint-chassis').addEventListener('input', updateMintPriceDisplay);
+
+      document.querySelectorAll('.tab').forEach(function (tab) {
+        tab.addEventListener('click', function () {
+          document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
+          document.querySelectorAll('.panel').forEach(function (p) { p.classList.remove('visible'); });
+          tab.classList.add('active');
+          const panel = document.getElementById('panel-' + tab.getAttribute('data-tab'));
+          if (panel) panel.classList.add('visible');
+          if (tab.getAttribute('data-tab') === 'my-cars') loadMyCars();
+          if (tab.getAttribute('data-tab') === 'progression') loadProgression();
+          if (tab.getAttribute('data-tab') === 'leaderboard') loadLeaderboard();
+          if (tab.getAttribute('data-tab') === 'config') loadConfig();
+        });
+      });
+
+      document.getElementById('btn-mint').addEventListener('click', async function () {
+        hideMsg('mint-msg');
+        const chassis = parseInt(document.getElementById('mint-chassis').value, 10) || 0;
+        const tier = parseInt(document.getElementById('mint-tier').value, 10) || 0;
+        const addr = getContractAddr();
+        if (!addr || !signer) { showMsg('mint-msg', 'Connect wallet and set contract.', 'err'); return; }
+        try {
+          const abi = ['function mintCar(address to, uint8 chassisType, uint8 engineTier) payable returns (uint256 tokenId)'];
+          const c = new ethers.Contract(addr, abi, signer);
+          const price = await c.getMintPrice(chassis);
+          const tx = await c.mintCar(userAddress, chassis, tier, { value: price });
+          showMsg('mint-msg', 'Tx: ' + tx.hash, 'ok');
+          await tx.wait();
+          showMsg('mint-msg', 'Car minted.', 'ok');
+          await refreshStats();
+          loadMyCars();
+        } catch (e) { showMsg('mint-msg', e.message || 'Failed', 'err'); }
+      });
+
+      document.getElementById('btn-batch-mint').addEventListener('click', async function () {
+        hideMsg('batch-mint-msg');
+        const chassisStr = (document.getElementById('batch-chassis').value || '').trim();
+        const tierStr = (document.getElementById('batch-tier').value || '').trim();
+        const chassisArr = chassisStr.split(',').map(function (x) { return parseInt(x.trim(), 10) || 0; });
+        const tierArr = tierStr.split(',').map(function (x) { return parseInt(x.trim(), 10) || 0; });
+        if (chassisArr.length !== tierArr.length || chassisArr.length === 0) { showMsg('batch-mint-msg', 'Same number of chassis and tiers required.', 'err'); return; }
+        const addr = getContractAddr();
+        if (!addr || !signer) { showMsg('batch-mint-msg', 'Connect wallet and set contract.', 'err'); return; }
+        try {
+          const abi = ['function mintCarBatch(address to, uint8[] chassisTypes, uint8[] engineTiers) payable returns (uint256[] tokenIds)', 'function estimateBatchMintCost(uint8[], uint8[]) view returns (uint256 totalWei)'];
