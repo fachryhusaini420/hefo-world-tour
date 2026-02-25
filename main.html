@@ -550,3 +550,72 @@
         if (!addr || !signer) { showMsg('batch-mint-msg', 'Connect wallet and set contract.', 'err'); return; }
         try {
           const abi = ['function mintCarBatch(address to, uint8[] chassisTypes, uint8[] engineTiers) payable returns (uint256[] tokenIds)', 'function estimateBatchMintCost(uint8[], uint8[]) view returns (uint256 totalWei)'];
+          const c = new ethers.Contract(addr, abi, signer);
+          const totalWei = await c.estimateBatchMintCost(chassisArr, tierArr);
+          const tx = await c.mintCarBatch(userAddress, chassisArr, tierArr, { value: totalWei });
+          showMsg('batch-mint-msg', 'Tx: ' + tx.hash, 'ok');
+          await tx.wait();
+          showMsg('batch-mint-msg', 'Batch minted.', 'ok');
+          await refreshStats();
+          loadMyCars();
+        } catch (e) { showMsg('batch-mint-msg', e.message || 'Failed', 'err'); }
+      });
+
+      document.getElementById('btn-refresh-cars').addEventListener('click', function () { loadMyCars(); refreshStats(); });
+      document.getElementById('btn-refresh-leaderboard').addEventListener('click', loadLeaderboard);
+
+      document.getElementById('btn-unlock-stage').addEventListener('click', async function () {
+        hideMsg('unlock-stage-msg');
+        const driver = (document.getElementById('unlock-driver').value || '').trim();
+        const tokenId = (document.getElementById('unlock-tokenid').value || '0').trim();
+        const addr = getContractAddr();
+        if (!addr || !signer || !driver) { showMsg('unlock-stage-msg', 'Connect wallet, set contract, and enter driver.', 'err'); return; }
+        try {
+          const abi = ['function unlockStageForDriverWithToken(address driver, uint256 tokenId)'];
+          const c = new ethers.Contract(addr, abi, signer);
+          const tx = await c.unlockStageForDriverWithToken(driver, BigInt(tokenId));
+          showMsg('unlock-stage-msg', 'Tx: ' + tx.hash, 'ok');
+          await tx.wait();
+          showMsg('unlock-stage-msg', 'Stage unlocked.', 'ok');
+          if (driver === userAddress) refreshStats();
+        } catch (e) { showMsg('unlock-stage-msg', e.message || 'Failed', 'err'); }
+      });
+
+      document.getElementById('btn-record-lap').addEventListener('click', async function () {
+        hideMsg('record-lap-msg');
+        const driver = (document.getElementById('lap-driver').value || '').trim();
+        const tokenId = (document.getElementById('lap-tokenid').value || '0').trim();
+        const stageId = parseInt(document.getElementById('lap-stage').value, 10) || 0;
+        const lapTimeMs = (document.getElementById('lap-time').value || '0').trim();
+        const addr = getContractAddr();
+        if (!addr || !signer || !driver) { showMsg('record-lap-msg', 'Connect wallet, set contract, and enter driver.', 'err'); return; }
+        try {
+          const abi = ['function recordLap(address driver, uint256 tokenId, uint8 stageId, uint256 lapTimeMs)'];
+          const c = new ethers.Contract(addr, abi, signer);
+          const tx = await c.recordLap(driver, BigInt(tokenId), stageId, BigInt(lapTimeMs));
+          showMsg('record-lap-msg', 'Tx: ' + tx.hash, 'ok');
+          await tx.wait();
+          showMsg('record-lap-msg', 'Lap recorded.', 'ok');
+          loadLeaderboard();
+        } catch (e) { showMsg('record-lap-msg', e.message || 'Failed', 'err'); }
+      });
+
+      document.getElementById('btn-reach-cp').addEventListener('click', async function () {
+        hideMsg('reach-cp-msg');
+        const driver = (document.getElementById('cp-driver').value || '').trim();
+        const stageId = parseInt(document.getElementById('cp-stage').value, 10) || 0;
+        const cpIndex = parseInt(document.getElementById('cp-index').value, 10) || 0;
+        const lapTimeMs = (document.getElementById('cp-time').value || '0').trim();
+        const addr = getContractAddr();
+        if (!addr || !signer || !driver) { showMsg('reach-cp-msg', 'Connect wallet, set contract, and enter driver.', 'err'); return; }
+        try {
+          const abi = ['function reachCheckpoint(address driver, uint8 stageId, uint8 checkpointIndex, uint256 lapTimeMs)'];
+          const c = new ethers.Contract(addr, abi, signer);
+          const tx = await c.reachCheckpoint(driver, stageId, cpIndex, BigInt(lapTimeMs));
+          showMsg('reach-cp-msg', 'Tx: ' + tx.hash, 'ok');
+          await tx.wait();
+          showMsg('reach-cp-msg', 'Checkpoint reached.', 'ok');
+        } catch (e) { showMsg('reach-cp-msg', e.message || 'Failed', 'err'); }
+      });
+
+      document.getElementById('btn-withdraw').addEventListener('click', async function () {
