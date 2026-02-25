@@ -274,3 +274,72 @@
       <div class="card">
         <h3>Contract config</h3>
         <p style="color: var(--text-dim); font-size: 0.86rem; margin-bottom: 0.75rem;">Reponator Driver immutable addresses and settings.</p>
+        <div class="config-grid" id="config-grid"></div>
+        <h4>Immutable</h4>
+        <div class="config-grid">
+          <div class="config-item"><span class="k">Pit Boss</span><div class="v" id="cfg-pitboss">—</div></div>
+          <div class="config-item"><span class="k">Race Director</span><div class="v" id="cfg-director">—</div></div>
+          <div class="config-item"><span class="k">Treasury</span><div class="v" id="cfg-treasury">—</div></div>
+          <div class="config-item"><span class="k">Prize Vault</span><div class="v" id="cfg-prize">—</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 1.25rem;">
+      <h3>Stages & checkpoints</h3>
+      <p style="color: var(--text-dim); font-size: 0.86rem; margin-bottom: 0.6rem;">Stages are configured by the Pit Boss with a required minimum engine tier and optional chassis mask. Checkpoints have a max lap time. Only the Race Director can unlock stages (using a driver’s qualifying token) and record laps/checkpoints.</p>
+      <div id="stages-list" style="color: var(--text-dim); font-size: 0.84rem;"></div>
+    </div>
+    <div class="card" style="margin-top: 1rem;">
+      <h3>About Hefo World Tour</h3>
+      <p style="color: var(--text-dim); font-size: 0.88rem; line-height: 1.55;">Hefo World Tour is the web interface for the Reponator Driver (RPD) contract. Mint racing car NFTs with chassis type (0–31) and engine tier (0–7). Progression is NFT-gated: hold a qualifying car to unlock stages; the race director records laps and checkpoints. Leaderboard tracks best lap per stage. Pit boss configures stages and mint prices; treasury receives proceeds.</p>
+      <p style="color: var(--text-dim); font-size: 0.82rem; margin-top: 0.5rem;">Constants: RPD_MAX_SUPPLY 9999, RPD_MAX_STAGES 24, RPD_MAX_CHECKPOINTS_PER_STAGE 16, RPD_BATCH_MINT_CAP 12, RPD_LAP_TIME_SCALE_MS 999999. Safe for EVM mainnets when deployed with verified role addresses.</p>
+      <p style="color: var(--text-dim); font-size: 0.8rem; margin-top: 0.4rem;">Immutable addresses: Pit Boss, Race Director, Treasury, Prize Vault. No upgrade path; deploy a new contract to change roles.</p>
+    </div>
+    <p class="footer-note">Hefo World Tour · Reponator Driver (RPD) · Not financial advice.</p>
+  </div>
+
+  <script>
+    (function () {
+      const RPD_PIT_BOSS = '0x4B2c6E8f0A3d5F7b9C1e4F6a8B0d2E5f7A9c1D4e6';
+      const RPD_RACE_DIRECTOR = '0x5C3d7F9a1B4e6D8f0A2c5E7b9D1f3A6c8E0b2D5f7';
+      const RPD_TREASURY = '0x6D4e8F0a2B5c7E9d1F3a6C8e0B2d5F7a9C1e4D6f8';
+      const RPD_PRIZE_VAULT = '0x7E5f9A1b3C6d8F0a2B5e7D9f1A4c6E8b0D2f5A7c9';
+      let provider = null;
+      let signer = null;
+      let userAddress = null;
+      let contractAddress = null;
+
+      const contractIn = document.getElementById('contract-address');
+      const walletEl = document.getElementById('wallet-addr');
+      const statMinted = document.getElementById('stat-minted');
+      const statMyCars = document.getElementById('stat-my-cars');
+      const statStages = document.getElementById('stat-stages');
+      const statPaused = document.getElementById('stat-paused');
+
+      function showMsg(id, text, type) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = text;
+        el.className = 'msg ' + (type || 'info');
+        el.style.display = 'block';
+      }
+      function hideMsg(id) { const el = document.getElementById(id); if (el) el.style.display = 'none'; }
+      function getContractAddr() { return (contractIn.value || '').trim() || contractAddress; }
+
+      async function connectWallet() {
+        try {
+          if (!window.ethereum) { showMsg('mint-msg', 'No Ethereum provider.', 'err'); return; }
+          const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+          if (accounts.length) {
+            userAddress = accounts[0];
+            walletEl.textContent = userAddress.slice(0, 6) + '…' + userAddress.slice(-4);
+            provider = new ethers.BrowserProvider(window.ethereum);
+            signer = await provider.getSigner();
+            if (contractIn.value.trim()) contractAddress = contractIn.value.trim();
+            await refreshStats();
+          }
+        } catch (e) { showMsg('mint-msg', e.message || 'Connect failed', 'err'); }
+      }
+
+      async function refreshStats() {
