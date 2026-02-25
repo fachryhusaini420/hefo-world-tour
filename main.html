@@ -343,3 +343,72 @@
       }
 
       async function refreshStats() {
+        const addr = getContractAddr();
+        if (!addr) {
+          statMinted.textContent = '—';
+          statMyCars.textContent = '—';
+          statStages.textContent = '—';
+          statPaused.textContent = '—';
+          return;
+        }
+        try {
+          const abi = [
+            'function getFrontendConfig() view returns (address pitBoss_, address raceDirector_, uint256 totalMinted_, uint256 treasuryBalance_, bool paused_, uint256 deployBlock_)',
+            'function balanceOf(address) view returns (uint256)',
+            'function getStagesUnlockedCount(address) view returns (uint256)'
+          ];
+          const c = new ethers.Contract(addr, abi, provider || ethers.getDefaultProvider());
+          const cfg = await c.getFrontendConfig();
+          statMinted.textContent = cfg.totalMinted_.toString();
+          statPaused.textContent = cfg.paused_ ? 'Paused' : 'Active';
+          if (userAddress) {
+            const bal = await c.balanceOf(userAddress);
+            statMyCars.textContent = bal.toString();
+            const stages = await c.getStagesUnlockedCount(userAddress);
+            statStages.textContent = stages.toString();
+          } else {
+            statMyCars.textContent = '—';
+            statStages.textContent = '—';
+          }
+        } catch (e) {
+          statMinted.textContent = '—';
+          statMyCars.textContent = '—';
+          statStages.textContent = '—';
+          statPaused.textContent = '—';
+        }
+      }
+
+      async function updateMintPriceDisplay() {
+        const addr = getContractAddr();
+        const chassis = parseInt(document.getElementById('mint-chassis').value, 10) || 0;
+        const el = document.getElementById('mint-price-display');
+        if (!addr) { el.placeholder = 'Set contract'; return; }
+        try {
+          const abi = ['function getMintPrice(uint8) view returns (uint256)'];
+          const c = new ethers.Contract(addr, abi, provider || ethers.getDefaultProvider());
+          const price = await c.getMintPrice(chassis);
+          el.placeholder = price.toString() + ' wei';
+        } catch (_) { el.placeholder = '—'; }
+      }
+
+      function renderMyCars(cars) {
+        const list = document.getElementById('my-cars-list');
+        const empty = document.getElementById('my-cars-empty');
+        list.innerHTML = '';
+        if (!cars || cars.length === 0) { empty.style.display = 'block'; return; }
+        empty.style.display = 'none';
+        cars.forEach(function (c) {
+          const li = document.createElement('li');
+          li.innerHTML = '<span class="id">#' + c.tokenId + '</span><span class="traits">Chassis ' + c.chassis + ' · Tier ' + c.engineTier + '</span>';
+          list.appendChild(li);
+        });
+      }
+
+      async function loadMyCars() {
+        const addr = getContractAddr();
+        if (!addr || !userAddress) { renderMyCars([]); return; }
+        try {
+          const abi = [
+            'function getCarsByOwner(address) view returns (uint256[] tokenIds)',
+            'function getCarsTraits(uint256[]) view returns (uint8[] chassisTypes, uint8[] engineTiers, uint256[] mintBlocks)'
+          ];
