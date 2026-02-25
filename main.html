@@ -205,3 +205,72 @@
         <div class="actions"><button type="button" id="btn-refresh-leaderboard" class="btn gold small">Refresh</button></div>
         <table class="leaderboard-table" id="leaderboard-table">
           <thead><tr><th>Stage</th><th>Leader</th><th>Best lap (ms)</th></tr></thead>
+          <tbody id="leaderboard-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="panel-roles" class="panel">
+      <div class="card">
+        <h3>Unlock stage (Race Director)</h3>
+        <p style="color: var(--text-dim); font-size: 0.84rem; margin-bottom: 0.6rem;">Unlock a stage for a driver using one of their qualifying token IDs.</p>
+        <label>Driver address</label>
+        <input type="text" id="unlock-driver" class="input" placeholder="0x..." />
+        <label>Token ID (must be owned by driver and qualify for next stage)</label>
+        <input type="text" id="unlock-tokenid" class="input" placeholder="1" />
+        <button type="button" id="btn-unlock-stage" class="btn gold small">Unlock stage</button>
+        <div id="unlock-stage-msg" class="msg" style="display:none;"></div>
+      </div>
+      <div class="card">
+        <h3>Record lap (Race Director)</h3>
+        <label>Driver address</label>
+        <input type="text" id="lap-driver" class="input" placeholder="0x..." />
+        <label>Token ID</label>
+        <input type="text" id="lap-tokenid" class="input" placeholder="1" />
+        <label>Stage ID</label>
+        <input type="number" id="lap-stage" class="input" min="0" value="0" />
+        <label>Lap time (ms)</label>
+        <input type="text" id="lap-time" class="input" placeholder="120000" />
+        <button type="button" id="btn-record-lap" class="btn gold small">Record lap</button>
+        <div id="record-lap-msg" class="msg" style="display:none;"></div>
+      </div>
+      <div class="card">
+        <h3>Reach checkpoint (Race Director)</h3>
+        <label>Driver address</label>
+        <input type="text" id="cp-driver" class="input" placeholder="0x..." />
+        <label>Stage ID</label>
+        <input type="number" id="cp-stage" class="input" min="0" value="0" />
+        <label>Checkpoint index</label>
+        <input type="number" id="cp-index" class="input" min="0" value="0" />
+        <label>Lap time (ms)</label>
+        <input type="text" id="cp-time" class="input" placeholder="120000" />
+        <button type="button" id="btn-reach-cp" class="btn gold small">Reach checkpoint</button>
+        <div id="reach-cp-msg" class="msg" style="display:none;"></div>
+      </div>
+      <div class="card">
+        <h3>Withdraw proceeds (Pit Boss)</h3>
+        <label>To address</label>
+        <input type="text" id="withdraw-to" class="input" placeholder="0x..." />
+        <label>Amount (wei)</label>
+        <input type="text" id="withdraw-amount" class="input" placeholder="0" value="0" />
+        <button type="button" id="btn-withdraw" class="btn primary small">Withdraw</button>
+        <div id="withdraw-msg" class="msg" style="display:none;"></div>
+      </div>
+      <div class="card">
+        <h3>Configure stage (Pit Boss)</h3>
+        <p style="color: var(--text-dim); font-size: 0.84rem; margin-bottom: 0.6rem;">Set required min engine tier and chassis mask (bitmask) for a stage.</p>
+        <label>Stage ID (0–23)</label>
+        <input type="number" id="cfg-stage-id" class="input" min="0" max="23" value="0" />
+        <label>Required min tier (0–7)</label>
+        <input type="number" id="cfg-stage-tier" class="input" min="0" max="7" value="0" />
+        <label>Required chassis mask (uint32, 0 = any)</label>
+        <input type="text" id="cfg-stage-mask" class="input" placeholder="0" value="0" />
+        <button type="button" id="btn-configure-stage" class="btn primary small">Configure stage</button>
+        <div id="configure-stage-msg" class="msg" style="display:none;"></div>
+      </div>
+    </div>
+
+    <div id="panel-config" class="panel">
+      <div class="card">
+        <h3>Contract config</h3>
+        <p style="color: var(--text-dim); font-size: 0.86rem; margin-bottom: 0.75rem;">Reponator Driver immutable addresses and settings.</p>
