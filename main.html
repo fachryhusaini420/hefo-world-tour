@@ -412,3 +412,72 @@
             'function getCarsByOwner(address) view returns (uint256[] tokenIds)',
             'function getCarsTraits(uint256[]) view returns (uint8[] chassisTypes, uint8[] engineTiers, uint256[] mintBlocks)'
           ];
+          const c = new ethers.Contract(addr, abi, provider || ethers.getDefaultProvider());
+          const ids = await c.getCarsByOwner(userAddress);
+          const arr = Array.isArray(ids) ? ids : [];
+          if (arr.length === 0) { renderMyCars([]); return; }
+          const res = await c.getCarsTraits(arr);
+          const cars = [];
+          for (let i = 0; i < arr.length; i++) {
+            cars.push({ tokenId: arr[i].toString(), chassis: res.chassisTypes[i], engineTier: res.engineTiers[i] });
+          }
+          renderMyCars(cars);
+          const addr2 = getContractAddr();
+          if (addr2 && userAddress) {
+            try {
+              const abiQ = ['function getQualifyingTokenCount(address owner, uint8 stageId) view returns (uint256 count)'];
+              const cQ = new ethers.Contract(addr2, abiQ, provider || ethers.getDefaultProvider());
+              const count = await cQ.getQualifyingTokenCount(userAddress, 0);
+              document.getElementById('qualifying-count').textContent = count.toString();
+            } catch (_) { document.getElementById('qualifying-count').textContent = '—'; }
+          } else { document.getElementById('qualifying-count').textContent = '—'; }
+        } catch (e) { renderMyCars([]); document.getElementById('qualifying-count').textContent = '—'; }
+      }
+
+      async function loadProgression() {
+        const addr = getContractAddr();
+        const el = document.getElementById('progression-content');
+        if (!addr || !userAddress) { el.innerHTML = '<p style="color: var(--text-dim);">Connect wallet and set contract.</p>'; return; }
+        try {
+          const abi = ['function getDriverFullProgress(address) view returns (uint8[] unlockedStageIds, uint8[] checkpointsPerStage, uint256 carCount)'];
+          const c = new ethers.Contract(addr, abi, provider || ethers.getDefaultProvider());
+          const res = await c.getDriverFullProgress(userAddress);
+          let html = '<p class="gold">Cars owned: ' + res.carCount.toString() + '</p>';
+          html += '<p style="color: var(--text-dim); margin-top: 0.5rem;">Stages unlocked: ' + res.unlockedStageIds.length + '</p>';
+          if (res.unlockedStageIds.length) {
+            html += '<ul style="margin-top: 0.5rem; list-style: none;">';
+            for (let i = 0; i < res.unlockedStageIds.length; i++) {
+              html += '<li>Stage ' + res.unlockedStageIds[i] + ' — Checkpoints reached: ' + res.checkpointsPerStage[i] + '</li>';
+            }
+            html += '</ul>';
+          }
+          el.innerHTML = html;
+        } catch (e) { el.innerHTML = '<p class="msg err">' + (e.message || 'Load failed') + '</p>'; }
+      }
+
+      async function loadLeaderboard() {
+        const addr = getContractAddr();
+        const tbody = document.getElementById('leaderboard-tbody');
+        tbody.innerHTML = '';
+        if (!addr) return;
+        try {
+          const abi = ['function getAllStageLeaders() view returns (uint8[] stageIds, address[] leaders, uint256[] bestLapsMs)'];
+          const c = new ethers.Contract(addr, abi, provider || ethers.getDefaultProvider());
+          const res = await c.getAllStageLeaders();
+          for (let i = 0; i < res.stageIds.length; i++) {
+            const tr = document.createElement('tr');
+            const leader = res.leaders[i] && res.leaders[i] !== '0x0000000000000000000000000000000000000000' ? res.leaders[i].slice(0, 6) + '…' + res.leaders[i].slice(-4) : '—';
+            tr.innerHTML = '<td class="mono">' + res.stageIds[i] + '</td><td class="mono">' + leader + '</td><td class="mono">' + (res.bestLapsMs[i] ? res.bestLapsMs[i].toString() : '—') + '</td>';
+            tbody.appendChild(tr);
+          }
+        } catch (_) {}
+      }
+
+      async function loadConfig() {
+        document.getElementById('cfg-pitboss').textContent = RPD_PIT_BOSS;
+        document.getElementById('cfg-director').textContent = RPD_RACE_DIRECTOR;
+        document.getElementById('cfg-treasury').textContent = RPD_TREASURY;
+        document.getElementById('cfg-prize').textContent = RPD_PRIZE_VAULT;
+        const addr = getContractAddr();
+        const grid = document.getElementById('config-grid');
+        grid.innerHTML = '';
